@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 
 import tinkoff.invest
-from tinkoff.invest import Client, CandleInterval
+from tinkoff.invest import Client, CandleInterval, MoneyValue
 from tinkoff.invest.constants import INVEST_GRPC_API
 from tinkoff.invest.utils import now
 
@@ -53,9 +53,15 @@ class TinkoffClient(BrokerClient):
             out = []
             for event in response.events:
                 out.append({
-                    "number": event.coupon_number, "date": event.coupon_date.date(), "value": event.pay_one_bond.units
+                    "number": event.coupon_number,
+                    "date": event.coupon_date.date(),
+                    "value": handle_price(event.pay_one_bond)
                 })
             return out
+
+        def handle_price(price_entity: MoneyValue) -> float:
+            units, nano = price_entity.units, price_entity.nano
+            return units + nano / 1000000000
 
         with self.__client_cls(self.__token, target=INVEST_GRPC_API) as client:
             bonds = client.instruments.bonds()
@@ -67,17 +73,17 @@ class TinkoffClient(BrokerClient):
                             if bond.sector == "government":
                                 flb_storage.append({"ticker": bond.ticker,
                                                     "name": bond.name,
-                                                    "aci": bond.aci_value.units,
+                                                    "aci": handle_price(bond.aci_value),
                                                     "currency": bond.currency,
                                                     "placement_date": bond.placement_date.date(),
                                                     "maturity_date": bond.maturity_date.date(),
                                                     "coupons": handle_coupons(client.instruments.get_bond_coupons(
                                                         figi=bond.figi
                                                     )),
-                                                    "nominal_value": bond.nominal.units,
-                                                    "real_value": client.market_data.get_last_prices(
+                                                    "nominal_value": handle_price(bond.nominal),
+                                                    "real_value": handle_price(client.market_data.get_last_prices(
                                                         figi=[bond.figi]
-                                                    ).last_prices[0].price.units * 0.01 * bond.nominal.units,
+                                                    ).last_prices[0].price) * 0.01 * handle_price(bond.nominal),
                                                     "coupon_quantity_per_year": bond.coupon_quantity_per_year
                                 })
 
