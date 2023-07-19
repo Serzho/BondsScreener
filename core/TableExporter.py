@@ -52,7 +52,7 @@ class TableExporter:
 
         proceeds = repayment + total_coupons
         total_profit = proceeds / expenses
-        return total_profit ** (12 / (years * 12 + months))
+        return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
     def _get_row_list(self, bond_dict: dict) -> list:
         date_diff = self._date_dt(bond_dict.get("placement_date"), bond_dict.get("maturity_date"))
@@ -62,7 +62,7 @@ class TableExporter:
         )
         return [
             bond_dict.get("ticker"), bond_dict.get("name"), bond_dict.get("currency"),
-            bond_dict.get("placement_date").strftime("%d:%m:%Y"), bond_dict.get("maturity_date").strftime("%d:%m:%Y"),
+            bond_dict.get("placement_date").strftime("%d-%m-%Y"), bond_dict.get("maturity_date").strftime("%d-%m-%Y"),
             self._prepare_date_dt(*date_diff), bond_dict.get("coupon_quantity_per_year"), bond_dict.get("real_value"),
             bond_dict.get("nominal_value"), annual_profit
         ]

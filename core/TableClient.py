@@ -23,9 +23,11 @@ class TableClient(ABC):
 
 class GoogleSheetsClient(TableClient):
     def __init__(self):
-        gs_client = gspread.service_account(filename=TABLE_TOKEN_FILE)
+        scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        gs_client = gspread.service_account(filename=TABLE_TOKEN_FILE, scopes=scopes)
         self._sheet: Spreadsheet
         self._connect_table(gs_client, "Bonds")
+        print(self._sheet.url)
 
     def _connect_table(self, gs_client: Client, table_title: str):
         if table_title not in [sheet.title for sheet in gs_client.openall()]:
@@ -44,19 +46,17 @@ class GoogleSheetsClient(TableClient):
         worksheet = self._sheet.worksheet("Main")
         instrument_range = header_range[0], header_range[1] + 1, header_range[2], header_range[3] + 1 + len(values_list)
         worksheet.batch_update([
-            {'range': "{}{}:{}{}".format(*header_range), 'values': [header_list]}
-        ])
-        worksheet.batch_update([
+            {'range': "{}{}:{}{}".format(*header_range), 'values': [header_list]},
             {'range': "{}{}:{}{}".format(*instrument_range), 'values': values_list}
         ])
 
-    def write_flb(self, flb_list: list[tuple], start_cell = (1, 1)):
+    def write_flb(self, flb_list: list[list], start_cell = (1, 1)):
         header_list = [
             'Тикер', 'Название', 'Валюта', 'Дата размещения',
             'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
             'Цена', 'Номинал', 'Реальная доходность'
         ]
-        print(flb_list)
+        # print(flb_list)
         self._write_table(flb_list, header_list, start_cell)
 
 

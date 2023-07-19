@@ -68,7 +68,7 @@ class TinkoffClient(BrokerClient):
             flb_storage = self._bonds_storage['ru_flb']
             if bonds is not None:
                 for bond in bonds.instruments:
-                    if not bond.for_qual_investor_flag:
+                    if not bond.for_qual_investor_flag and not bond.floating_coupon_flag:
                         if bond.currency == 'rub':
                             if bond.sector == "government":
                                 flb_storage.append({"ticker": bond.ticker,
@@ -78,7 +78,7 @@ class TinkoffClient(BrokerClient):
                                                     "placement_date": bond.placement_date.date(),
                                                     "maturity_date": bond.maturity_date.date(),
                                                     "coupons": handle_coupons(client.instruments.get_bond_coupons(
-                                                        figi=bond.figi
+                                                        figi=bond.figi, to=bond.maturity_date
                                                     )),
                                                     "nominal_value": handle_price(bond.nominal),
                                                     "real_value": handle_price(client.market_data.get_last_prices(

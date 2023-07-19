@@ -9,7 +9,7 @@ def main():
     google_sheets_client = GoogleSheetsClient()
     table_exporter = TableExporter()
 
-    # google_sheets_client.write_flb([])
+    google_sheets_client.write_flb([])
     tinkoff_client.update_bonds_storage()
     flb_table = table_exporter.get_table(tinkoff_client.get_bonds().get("ru_flb"))
     google_sheets_client.write_flb(flb_table)
