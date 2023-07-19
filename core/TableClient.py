@@ -36,15 +36,28 @@ class GoogleSheetsClient(TableClient):
             self._sheet = gs_client.open(table_title)
         self._sheet.share(EMAIL, perm_type='user', role='writer')
 
-    def write_flb(self, flb_list: list[tuple]):
+    def _write_table(self, values_list: list, header_list: list, start_cell: tuple[int, int]):
+        header_range = chr(ord('A') + start_cell[1] - 1), \
+                       start_cell[0], \
+                       chr(ord('A') + start_cell[1] - 1 + len(header_list)), \
+                       start_cell[0]
         worksheet = self._sheet.worksheet("Main")
-        worksheet.update("A1:J1", ['Тикер', 'Название', 'Валюта', 'Дата размещения',
-                                   'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
-                                   'Цена', 'Номинал', 'Реальная доходность'])
-        for row_ind, fld_tuple in enumerate(flb_list):
-            for col_ind in range(1, 11):
-                worksheet.update(row_ind + 2, col_ind, fld_tuple[col_ind])
+        instrument_range = header_range[0], header_range[1] + 1, header_range[2], header_range[3] + 1 + len(values_list)
+        worksheet.batch_update([
+            {'range': "{}{}:{}{}".format(*header_range), 'values': [header_list]}
+        ])
+        worksheet.batch_update([
+            {'range': "{}{}:{}{}".format(*instrument_range), 'values': values_list}
+        ])
 
+    def write_flb(self, flb_list: list[tuple], start_cell = (1, 1)):
+        header_list = [
+            'Тикер', 'Название', 'Валюта', 'Дата размещения',
+            'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
+            'Цена', 'Номинал', 'Реальная доходность'
+        ]
+        print(flb_list)
+        self._write_table(flb_list, header_list, start_cell)
 
 
 
