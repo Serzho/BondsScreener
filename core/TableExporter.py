@@ -11,6 +11,8 @@ class TableExporter:
         dt = second_date - first_date
         years = dt.days // 365
         months = (dt.days % 365) // 30
+        if years == 0 and months == 0:
+            months = 1
         return years, months
 
     @staticmethod
@@ -20,7 +22,7 @@ class TableExporter:
             out += "1 год "
         elif 1 < years % 10 < 5 and not (1 < years // 10 < 2):
             out += f"{years} года "
-        else:
+        elif years != 0:
             out += f"{years} лет "
         if months == 1:
             out += "1 месяц"
@@ -55,7 +57,7 @@ class TableExporter:
         return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
     def _get_row_list(self, bond_dict: dict) -> list:
-        date_diff = self._date_dt(bond_dict.get("placement_date"), bond_dict.get("maturity_date"))
+        date_diff = self._date_dt(datetime.date.today(), bond_dict.get("maturity_date"))
         annual_profit = self._count_annual_profitability(
             date_diff, bond_dict.get("coupons"), bond_dict.get("nominal_value"), bond_dict.get("real_value"),
             bond_dict.get("aci"), bond_dict.get("currency")
