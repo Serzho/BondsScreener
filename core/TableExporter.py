@@ -67,7 +67,7 @@ class TableExporter:
         )
 
         return [
-            bond_dict.get("ticker"), bond_dict.get("name"), bond_dict.get("currency"),
+            bond_dict.get("ticker"), bond_dict.get("name"), bond_dict.get("currency"), bond_dict.get("risk_level"),
             bond_dict.get("placement_date").strftime("%d-%m-%Y"), bond_dict.get("maturity_date").strftime("%d-%m-%Y"),
             self._prepare_date_dt(*date_diff), bond_dict.get("coupon_quantity_per_year"), bond_dict.get("real_value"),
             bond_dict.get("nominal_value"), annual_profit

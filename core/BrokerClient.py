@@ -93,7 +93,8 @@ class TinkoffClient(BrokerClient):
                     "real_value": handle_price(client.market_data.get_last_prices(
                         figi=[bond.figi]
                     ).last_prices[0].price) * 0.01 * handle_price(bond.nominal),
-                    "coupon_quantity_per_year": bond.coupon_quantity_per_year
+                    "coupon_quantity_per_year": bond.coupon_quantity_per_year,
+                    "risk_level": bond.risk_level
                 }
             except tinkoff.invest.exceptions.RequestError:
                 print("RESOURCE_EXHAUSTED...")
