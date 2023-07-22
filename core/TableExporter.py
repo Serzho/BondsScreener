@@ -20,7 +20,7 @@ class TableExporter:
         out = ""
         if years == 1:
             out += "1 год "
-        elif 1 < years % 10 < 5 and not (1 < years // 10 < 2):
+        elif 1 < years % 10 < 5 and not (1 == years // 10):
             out += f"{years} года "
         elif years != 0:
             out += f"{years} лет "
@@ -28,7 +28,7 @@ class TableExporter:
             out += "1 месяц"
         elif 1 < months < 5:
             out += f"{months} месяца"
-        else:
+        elif months != 0:
             out += f"{months} месяцев"
         return out
 
