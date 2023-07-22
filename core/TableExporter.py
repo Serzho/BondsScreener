@@ -53,6 +53,8 @@ class TableExporter:
             repayment -= (nominal_price - real_price) * 0.13
 
         proceeds = repayment + total_coupons
+        if expenses == 0:
+            return 0.
         total_profit = proceeds / expenses
         return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
@@ -70,4 +72,4 @@ class TableExporter:
         ]
 
     def get_table(self, bond_list: list[dict]) -> list[list]:
-        return [self._get_row_list(bond_dict) for bond_dict in bond_list]
+        return [self._get_row_list(bond_dict) for bond_dict in bond_list if bond_dict != {}]
