@@ -55,6 +55,7 @@ class TableExporter:
         proceeds = repayment + total_coupons
         if expenses == 0:
             return 0.
+
         total_profit = proceeds / expenses
         return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
@@ -64,6 +65,7 @@ class TableExporter:
             date_diff, bond_dict.get("coupons"), bond_dict.get("nominal_value"), bond_dict.get("real_value"),
             bond_dict.get("aci"), bond_dict.get("currency")
         )
+
         return [
             bond_dict.get("ticker"), bond_dict.get("name"), bond_dict.get("currency"),
             bond_dict.get("placement_date").strftime("%d-%m-%Y"), bond_dict.get("maturity_date").strftime("%d-%m-%Y"),
@@ -72,4 +74,9 @@ class TableExporter:
         ]
 
     def get_table(self, bond_list: list[dict]) -> list[list]:
-        return [self._get_row_list(bond_dict) for bond_dict in bond_list if bond_dict != {}]
+        table = []
+        for bond_dict in bond_list:
+            if bond_dict.get("nominal_value") == 0 or bond_dict.get("real_value") == 0 or bond_dict == {}:
+                continue
+            table.append(self._get_row_list(bond_dict))
+        return table
