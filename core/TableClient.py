@@ -1,8 +1,12 @@
+import datetime
 from abc import ABC, abstractmethod
 import gspread
 from gspread import Client, Spreadsheet, Worksheet
 
 from cfg import EMAIL, TABLE_TOKEN_FILE
+from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range
+
+
 
 # TODO: добавить риск эмитента, итоговую доходность, эффективную доходность, купонную доходность
 
@@ -28,16 +32,61 @@ class GoogleSheetsClient(TableClient):
         scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         gs_client = gspread.service_account(filename=TABLE_TOKEN_FILE, scopes=scopes)
         self._sheet: Spreadsheet
-        self._worksheets = {"FLB": None, "RU_CORP": None}
+        self._worksheets = {"FLB": None, "RU_CORP": None, "MAIN": None}
         self._connect_table(gs_client, "Bonds")
+        self._fill_main_sheet()
         print(self._sheet.url)
+
+    def _fill_main_sheet(self):
+        worksheet: Worksheet | None
+        worksheet = self._worksheets.get("MAIN")
+        assert type(worksheet) == Worksheet
+        worksheet.batch_update([
+            {'range': "B4:C12", 'values': [
+                ['ТАБЛИЦА ОБЛИГАЦИЙ', ''], ['Последнее обновление:', '01-01-1970 00:00'],
+                ['Количество облигаций в базе:', '0'], ['Обновить:', False], ['Статус таблицы:', 'Не определен'],
+                ['ТАБЛИЦА СОЗДАНА ПРЕКРАСНЫМ МНОЙ', ''], ['telegram', '@serzho_christ'], ['github', '@serzho'],
+                ['linkedin', 'http://www.linkedin.com/in/serzhochrist/']]
+             }
+        ])
+        validation_rule = DataValidationRule(
+            BooleanCondition('BOOLEAN', []),
+            showCustomUi=True
+        )
+        set_data_validation_for_cell_range(worksheet, 'C7', validation_rule)
+
+    def set_updating_status(self):
+        worksheet: Worksheet | None
+        worksheet = self._worksheets.get("MAIN")
+        worksheet.batch_update([
+            {'range': "B5:C8", 'values': [
+                ['Последнее обновление:', '-'], ['Количество облигаций в базе:', '-'],
+                ['Обновить:', False], ['Статус таблицы:', 'ОБНОВЛЕНИЕ...']]
+             }
+        ])
+
+    def set_updated_status(self, bonds_count: int = 0):
+        worksheet: Worksheet | None
+        worksheet = self._worksheets.get("MAIN")
+        today = datetime.datetime.today().strftime("%d-%m-%y %M:%H")
+        worksheet.batch_update([
+            {'range': "B5:C8", 'values': [
+                ['Последнее обновление:', f'{today}'], ['Количество облигаций в базе:', f'{bonds_count}'],
+                ['Обновить:', False], ['Статус таблицы:', 'Готово']]
+             }
+        ])
+
+    def get_update_flag(self) -> bool:
+        worksheet: Worksheet | None
+        worksheet = self._worksheets.get("MAIN")
+        return worksheet.acell('C7').value == "TRUE"
 
     def _connect_table(self, gs_client: Client, table_title: str):
         if table_title not in [sheet.title for sheet in gs_client.openall()]:
             gs_client.create(table_title)
 
         self._sheet = gs_client.open(table_title)
-        for worksheet_title, worksheet in self._worksheets.items():
+        for worksheet_title in self._worksheets.keys():
             if worksheet_title not in [ws.title for ws in self._sheet.worksheets()]:
                 self._sheet.add_worksheet(worksheet_title, rows=10000, cols=100)
             self._worksheets.update({worksheet_title: self._sheet.worksheet(worksheet_title)})
