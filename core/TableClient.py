@@ -6,6 +6,7 @@ from cfg import EMAIL, TABLE_TOKEN_FILE
 
 # TODO: добавить риск эмитента, итоговую доходность, эффективную доходность, купонную доходность
 
+
 class TableClient(ABC):
     __slots__ = ["_sheet"]
 

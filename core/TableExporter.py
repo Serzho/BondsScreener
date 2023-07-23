@@ -34,18 +34,18 @@ class TableExporter:
 
     @staticmethod
     def _count_proceeds_and_expenses(today: datetime.date, coupons: list[dict], nominal_price: float, real_price: float,
-                                     aci: float, scale: float = 1.) -> (float, float):
-        expenses = (real_price + real_price * COMMISSION + aci) * scale
+                                     aci: float) -> (float, float):
+        expenses = (real_price + real_price * COMMISSION + aci)
         total_coupons = 0
 
         for coupon in coupons:
             if today >= coupon.get("date"):
                 continue
-            total_coupons += coupon.get("value") * 0.87 * scale
+            total_coupons += coupon.get("value") * 0.87
 
         repayment = nominal_price
         if nominal_price > real_price:
-            repayment -= (nominal_price - real_price) * 0.13 * scale
+            repayment -= (nominal_price - real_price) * 0.13
 
         proceeds = repayment + total_coupons
         return proceeds, expenses
@@ -56,7 +56,11 @@ class TableExporter:
         today = datetime.date.today()
         proceeds, expenses = self._count_proceeds_and_expenses(today, coupons, nominal_price, real_price, aci)
 
+        if expenses == 0.:
+            return 0.
+
         total_profit = proceeds / expenses
+
         return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
     def _count_effective_profitability(self, date_dt: (int, int), coupons: list[dict], nominal_price: float,
@@ -71,12 +75,16 @@ class TableExporter:
             if today >= coupon.get("date"):
                 continue
             coupon_proceeds, coupon_expenses = self._count_proceeds_and_expenses(
-                coupon.get("date"), coupons, nominal_price, real_price, aci, 0.87 * coupon.get("value") / real_price
+                coupon.get("date"), coupons, nominal_price, real_price, 0
             )
-            proceeds += coupon_proceeds
-            expenses += coupon_expenses
+            scale = (0.87 * coupon.get("value")) / coupon_expenses
+            proceeds += scale * coupon_proceeds - coupon.get("value") * 0.87
+
+        if expenses == 0.:
+            return 0.
 
         total_profit = proceeds / expenses
+
         return round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)
 
     def _get_row_list(self, bond_dict: dict) -> list:
