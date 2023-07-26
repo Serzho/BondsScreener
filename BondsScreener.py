@@ -20,7 +20,7 @@ def config_logging():
         level = logging.DEBUG
 
     logging.basicConfig(level=level, filename="bs_log.log", filemode="a",
-                        format="%(asctime)s | %(funcName)s: %(levelname)s - %(message)s")
+                        format="%(asctime)s | (%(filename)s).%(funcName)s: %(levelname)s - %(message)s")
     logging.info("Logging was successfully initialized")
 
 

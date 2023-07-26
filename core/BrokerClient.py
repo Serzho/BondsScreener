@@ -75,8 +75,6 @@ class TinkoffClient(BrokerClient):
 
         def handle_price(price_entity: MoneyValue) -> float:
             units, nano = price_entity.units, price_entity.nano
-            logging.info(f"Handling price: units={price_entity.units}, nano={price_entity.nano},"
-                         " result={units + nano / 1000000000}")
             return units + nano / 1000000000
 
         def get_bond_dict(bond: Bond, attempts: int = 1) -> dict:

@@ -8,10 +8,6 @@ from cfg import EMAIL, TABLE_TOKEN_FILE
 from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range
 
 
-
-# TODO: добавить риск эмитента, итоговую доходность, эффективную доходность, купонную доходность
-
-
 class TableClient(ABC):
     __slots__ = ["_sheet"]
 
@@ -89,8 +85,9 @@ class GoogleSheetsClient(TableClient):
     def get_update_flag(self) -> bool:
         worksheet: Worksheet | None
         worksheet = self._worksheets.get("MAIN")
-        logging.info(f"Update flag = {worksheet.acell('C7').value == 'TRUE'}")
-        return worksheet.acell('C7').value == "TRUE"
+        result = worksheet.acell('C7').value == 'TRUE'
+        logging.info(f"Update flag = {result}")
+        return result
 
     def _connect_table(self, gs_client: Client, table_title: str):
         logging.info("Connecting to table")
