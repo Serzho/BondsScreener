@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -42,6 +43,7 @@ class TinkoffClient(BrokerClient):
         self.__client_cls = Client
         self._bonds_storage = {"ru_flb": [], "ru_corp": []}
         self.__token = token
+        logging.info("Broker client was initialized")
 
     def set_token(self, token: str = ""):
         self.__token = token
@@ -61,6 +63,7 @@ class TinkoffClient(BrokerClient):
 
     def update_bonds_storage(self):
         def handle_coupons(response: tinkoff.invest.GetBondCouponsResponse) -> list[dict]:
+            logging.info(f"Handling coupons: coupons_amount={len(response.events)}")
             out = []
             for event in response.events:
                 out.append({
@@ -72,14 +75,18 @@ class TinkoffClient(BrokerClient):
 
         def handle_price(price_entity: MoneyValue) -> float:
             units, nano = price_entity.units, price_entity.nano
+            logging.info(f"Handling price: units={price_entity.units}, nano={price_entity.nano},"
+                         " result={units + nano / 1000000000}")
             return units + nano / 1000000000
 
         def get_bond_dict(bond: Bond, attempts: int = 1) -> dict:
+            logging.info(f"Getting bond list: ticker={bond.ticker}")
             try:
                 if handle_price(bond.nominal) == 0.0:
+                    logging.warning(f"Not available bond: ticker={bond.ticker}")
                     return {}
                 time.sleep(request_delay)
-                return {
+                out_dict = {
                     "ticker": bond.ticker,
                     "name": bond.name,
                     "aci": handle_price(bond.aci_value),
@@ -96,22 +103,31 @@ class TinkoffClient(BrokerClient):
                     "coupon_quantity_per_year": bond.coupon_quantity_per_year,
                     "risk_level": bond.risk_level
                 }
+                logging.info(f"Bond_dict={out_dict}")
+                return out_dict
+
             except tinkoff.invest.exceptions.RequestError:
+                logging.warning("Resource exhausted warning! Waiting 0.5 seconds")
                 print("RESOURCE_EXHAUSTED...")
                 time.sleep(0.5)
                 if attempts > MAX_REQUEST_ATTEMPTS:
+                    logging.error(f"MAX_REQUEST_ATTEMPTS_ERROR: {bond.ticker}")
                     print(f"Skipping bond {bond.ticker}")
                     return {}
+                logging.warning(f"Retrying getting bond dict: {bond.ticker}")
                 return get_bond_dict(bond, attempts + 1)
             except Exception as e:
+                logging.critical(f"UNEXPECTED ERROR!!! {e}")
                 print(e)
                 return {}
 
+        logging.info("Updating bonds storage...")
         with self.__client_cls(self.__token, target=INVEST_GRPC_API) as client:
             bonds = client.instruments.bonds()
             flb_storage = self._bonds_storage['ru_flb']
             bonds_count = len(bonds.instruments)
             ru_corp_storage = self._bonds_storage['ru_corp']
+            logging.info(f"Bonds amount = {bonds_count}")
             print(f"Count of bonds: {bonds_count}")
             if bonds is not None:
                 for number, bond in enumerate(bonds.instruments):
@@ -120,9 +136,17 @@ class TinkoffClient(BrokerClient):
                     if not any([bond.for_qual_investor_flag, bond.floating_coupon_flag, bond.amortization_flag]):
                         if bond.currency == 'rub':
                             if bond.sector == "government":
+                                logging.info(f"FLB Bond: {bond.ticker}")
                                 flb_storage.append(get_bond_dict(bond))
                             else:
+                                logging.info(f"RU CORP Bond: {bond.ticker}")
                                 ru_corp_storage.append(get_bond_dict(bond))
+                        else:
+                            print(bond.ticker, bond.currency)
+                    else:
+                        logging.warning(f"Unsuitable bond: {bond.ticker}")
+            else:
+                logging.critical("BONDS_IS_NONE_ERROR")
 
 
 
