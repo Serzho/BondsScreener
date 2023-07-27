@@ -30,7 +30,7 @@ class GoogleSheetsClient(TableClient):
         scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         gs_client = gspread.service_account(filename=TABLE_TOKEN_FILE, scopes=scopes)
         self._sheet: Spreadsheet
-        self._worksheets = {"FLB": None, "RU_CORP": None, "MAIN": None}
+        self._worksheets = {"FLB": None, "RU_CORP": None, "MAIN": None, "FCB": None}
         logging.info("Connecting table...")
         self._connect_table(gs_client, "Bonds")
         self._fill_main_sheet()
@@ -117,7 +117,7 @@ class GoogleSheetsClient(TableClient):
         header_list = [
             'Тикер', 'Название', 'Валюта', 'Уровень риска', 'Дата размещения',
             'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
-            'Цена', 'Номинал', 'Простая доходность', 'Эффективная доходность'
+            'Цена (rub)', 'Номинал (rub)', 'Простая доходность', 'Эффективная доходность'
         ]
 
         header_range = chr(ord('A') + start_cell[0] - 1), start_cell[1], \
@@ -140,3 +140,8 @@ class GoogleSheetsClient(TableClient):
         logging.info("Writing russian corporate bonds table")
         worksheet = self._worksheets.get("RU_CORP")
         self._write_table(ru_corp_list, start_cell, worksheet)
+
+    def write_fcb(self, fcb_list: list[list], start_cell=(1, 1)):
+        logging.info("Writing fcb table")
+        worksheet = self._worksheets.get("FCB")
+        self._write_table(fcb_list, start_cell, worksheet)

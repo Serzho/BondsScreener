@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from cfg import COMMISSION
+from cfg import BOND_COMMISSION, CURRENCY_COMMISSION
 
 
 class TableExporter:
@@ -39,7 +39,7 @@ class TableExporter:
                                      aci: float) -> (float, float):
         logging.info(f"Counting proceeds and expenses: date={today}, coupons_amount={len(coupons)}, "
                      f"nominal_price={nominal_price}, real_price={real_price}, aci={aci}")
-        expenses = (real_price + real_price * COMMISSION + aci)
+        expenses = (real_price + real_price * BOND_COMMISSION + aci)
         total_coupons = 0
 
         for coupon in coupons:
@@ -67,6 +67,10 @@ class TableExporter:
             logging.warning("Bond was not available to buying!")
             return 0.
 
+        if currency != "rub":
+            proceeds -= proceeds * CURRENCY_COMMISSION
+            expenses += expenses * CURRENCY_COMMISSION
+
         total_profit = proceeds / expenses
         logging.info(f"Bond profit: total_profit={total_profit}, "
                      f"result={round(100 * total_profit ** (12 / (years * 12 + months)) - 100, 2)}")
@@ -82,6 +86,10 @@ class TableExporter:
         proceeds, expenses = self._count_proceeds_and_expenses(today, coupons, nominal_price, real_price, aci)
         today = datetime.date.today()
 
+        if expenses == 0.:
+            logging.warning("Bond was not available to buying!")
+            return 0.
+
         logging.info("Counting re-investing coupons")
         for coupon in coupons:
             if today >= coupon.get("date"):
@@ -90,12 +98,12 @@ class TableExporter:
                 coupon.get("date"), coupons, nominal_price, real_price, 0
             )
             scale = (0.87 * coupon.get("value")) / coupon_expenses
-            logging.info(f"Coupon profit: proceeds={coupon_proceeds}, expenses={coupon_expenses}")
             proceeds += scale * coupon_proceeds - coupon.get("value") * 0.87
+            logging.info(f"Coupon profit: proceeds={coupon_proceeds}, expenses={coupon_expenses}")
 
-        if expenses == 0.:
-            logging.warning("Bond was not available to buying!")
-            return 0.
+        if currency != "rub":
+            proceeds -= proceeds * CURRENCY_COMMISSION
+            expenses += expenses * CURRENCY_COMMISSION
 
         total_profit = proceeds / expenses
 
@@ -107,6 +115,7 @@ class TableExporter:
     def _get_row_list(self, bond_dict: dict) -> list:
         logging.info(f"Getting row list for {bond_dict.get('ticker')}")
         date_diff = self._date_dt(datetime.date.today(), bond_dict.get("maturity_date"))
+        exchange_rate = bond_dict.get("exchange_rate")
         simple_profit = self._count_simple_profitability(
             date_diff, bond_dict.get("coupons"), bond_dict.get("nominal_value"), bond_dict.get("real_value"),
             bond_dict.get("aci"), bond_dict.get("currency")
@@ -119,8 +128,9 @@ class TableExporter:
         row_list = [
             bond_dict.get("ticker"), bond_dict.get("name"), bond_dict.get("currency"), bond_dict.get("risk_level"),
             bond_dict.get("placement_date").strftime("%d-%m-%Y"), bond_dict.get("maturity_date").strftime("%d-%m-%Y"),
-            self._prepare_date_dt(*date_diff), bond_dict.get("coupon_quantity_per_year"), bond_dict.get("real_value"),
-            bond_dict.get("nominal_value"), simple_profit, effective_profit
+            self._prepare_date_dt(*date_diff), bond_dict.get("coupon_quantity_per_year"),
+            bond_dict.get("real_value") * exchange_rate, bond_dict.get("nominal_value") * exchange_rate,
+            simple_profit, effective_profit
         ]
 
         logging.info(f"Returning row list={row_list}")
