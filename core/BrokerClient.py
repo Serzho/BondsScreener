@@ -108,7 +108,7 @@ class TinkoffClient(BrokerClient):
                         CURRENCY_TICKER_DICT.get(bond.currency)
                     )
                 }
-                logging.info(f"Bond_dict={out_dict}")
+                logging.info(f"Returning bond: attempts={attempts}, bond_dict={out_dict}")
                 return out_dict
 
             except tinkoff.invest.exceptions.RequestError as e:
@@ -160,13 +160,20 @@ class TinkoffClient(BrokerClient):
             ru_corp_storage = self._bonds_storage['ru_corp']
             fcb_storage = self._bonds_storage['fcb']
 
+
             logging.info(f"Bonds amount = {bonds_count}")
             print(f"Count of bonds: {bonds_count}")
             if bonds is not None:
                 for number, bond in enumerate(bonds.instruments):
                     if number % 10 == 0:
                         print(f"{round(100 * number / bonds_count, 2)}")
-                    if not any([bond.for_qual_investor_flag, bond.floating_coupon_flag, bond.amortization_flag]):
+                    blocked_flags =[
+                        bond.for_qual_investor_flag,
+                        bond.floating_coupon_flag,
+                        bond.amortization_flag,
+                        not bond.buy_available_flag
+                    ]
+                    if not any(blocked_flags):
                         if bond.currency == 'rub':
                             if bond.sector == "government":
                                 logging.info(f"FLB Bond: {bond.ticker}")

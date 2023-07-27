@@ -133,6 +133,10 @@ class TableExporter:
             simple_profit, effective_profit
         ]
 
+        if simple_profit > 1000 or effective_profit > 1000:
+            logging.error(f"UNREAL BOND PROFIT: dict={bond_dict}, row={row_list}")
+            return []
+
         logging.info(f"Returning row list={row_list}")
         return row_list
 
@@ -144,7 +148,9 @@ class TableExporter:
                 logging.warning(f"Not available bond: ticker={bond_dict.get('ticker')}")
                 continue
             logging.info(f"Available bond: ticker={bond_dict.get('ticker')}")
-            table.append(self._get_row_list(bond_dict))
+            row_list = self._get_row_list(bond_dict)
+            if row_list:
+                table.append(row_list)
 
         logging.info(f"Returning bond table: row_amount={len(table)}")
         return table
