@@ -9,10 +9,10 @@ from cfg import UNARY_REQUEST_LIMIT, MAX_REQUEST_ATTEMPTS
 
 request_delay = 0.85 * 60 / UNARY_REQUEST_LIMIT
 CURRENCY_TICKER_DICT = {
-    "usd": "USDRUB", "cny": "CNYRUB", "hkd": "HKDRUB", "try": "TRYRUB", "kzt": "KZTRUB_TOM", "byn": "BYNRUB_TOM",
-    "amd": "AMDRUB_TOM", "uzs": "UZSRUB_TOM", "kgs": "KGSRUB_TOM", "tjs": "TJSRUB_TOM", "rub": None
+    "usd": "USD000UTSTOM", "cny": "CNYRUB_TOM", "hkd": "HKDRUB_TOM", "try": "TRYRUB_TOM", "kzt": "KZTRUB_TOM",
+    "byn": "BYNRUB_TOM", "amd": "AMDRUB_TOM", "uzs": "UZSRUB_TOM", "kgs": "KGSRUB_TOM", "tjs": "TJSRUB_TOM", "rub": None
 }
-exchange_rate_dict = {ticker: 0. for ticker in CURRENCY_TICKER_DICT.values()}
+exchange_rate_dict = {ticker: 1. for ticker in CURRENCY_TICKER_DICT.values()}
 
 
 class BrokerClient(ABC):
@@ -132,22 +132,26 @@ class TinkoffClient(BrokerClient):
             logging.info("Updating exchange rates")
             currencies = client.instruments.currencies()
             if currencies is not None:
-                for currency in currencies:
+                for currency in currencies.instruments:
                     rate = handle_price(
                         client.market_data.get_last_prices(
                             figi=[currency.figi]
                         ).last_prices[0].price
                     )
-                    exchange_rate_dict.update({currency.ticker: rate})
-                    logging.info(f"Updating rate: {currency.ticker} = {rate}")
+                    if rate != 0. and currency.ticker in exchange_rate_dict.keys():
+                        exchange_rate_dict.update({currency.ticker: rate})
+                        logging.info(f"Updating rate: {currency.ticker} = {rate}")
+                    else:
+                        logging.warning(f"Unexpected values currency: {currency.ticker}, {rate}")
             else:
                 logging.critical("CURRENCIES IS NONE")
                 return
-            logging.info("Exchange rates was successfully updated!")
+            logging.info(f"Exchange rates was successfully updated! {exchange_rate_dict}")
 
         logging.info("Updating bonds storage...")
 
         with self.__client_cls(self.__token, target=INVEST_GRPC_API) as client:
+            update_exchange_rates()
             bonds = client.instruments.bonds()
             bonds_count = len(bonds.instruments)
 
@@ -165,10 +169,10 @@ class TinkoffClient(BrokerClient):
                         if bond.currency == 'rub':
                             if bond.sector == "government":
                                 logging.info(f"FLB Bond: {bond.ticker}")
-                                # flb_storage.append(get_bond_dict(bond))
+                                flb_storage.append(get_bond_dict(bond))
                             else:
                                 logging.info(f"RU CORP Bond: {bond.ticker}")
-                                # ru_corp_storage.append(get_bond_dict(bond))
+                                ru_corp_storage.append(get_bond_dict(bond))
                         elif bond.currency in CURRENCY_TICKER_DICT.keys():
                             logging.info(f"FCB Bond: {bond.ticker}")
                             fcb_storage.append(get_bond_dict(bond))
