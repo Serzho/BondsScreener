@@ -151,6 +151,7 @@ class TinkoffClient(BrokerClient):
         logging.info("Updating bonds storage...")
 
         with self.__client_cls(self.__token, target=INVEST_GRPC_API) as client:
+            st_time = time.time()
             update_exchange_rates()
             bonds = client.instruments.bonds()
             bonds_count = len(bonds.instruments)
@@ -182,6 +183,8 @@ class TinkoffClient(BrokerClient):
                         logging.warning(f"Unsuitable bond: {bond.ticker}")
             else:
                 logging.critical("BONDS_IS_NONE_ERROR")
+            logging.info(f"Bonds storage was updated for {time.time() - st_time}")
+            print(f"Bonds storage was updated for {time.time() - st_time}")
 
 
 

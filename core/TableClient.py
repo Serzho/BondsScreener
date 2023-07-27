@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from abc import ABC, abstractmethod
 import gspread
 from gspread import Client, Spreadsheet, Worksheet
@@ -85,7 +86,19 @@ class GoogleSheetsClient(TableClient):
     def get_update_flag(self) -> bool:
         worksheet: Worksheet | None
         worksheet = self._worksheets.get("MAIN")
-        result = worksheet.acell('C7').value == 'TRUE'
+        try:
+            result = worksheet.acell('C7').value == 'TRUE'
+        except gspread.exceptions.APIError as e:
+            print("GSPREAD RESOURCE EXHAUSTED")
+            logging.warning("Gspread resource exhausted! Waiting 1 sec")
+            logging.exception(e)
+            time.sleep(1)
+            result = self.get_update_flag()
+        except Exception as e:
+            print(f"UNEXPECTED EXCEPTION: {e}")
+            logging.critical(f"UNEXPECTED EXCEPTION IN GSPREAD: {e}")
+            logging.exception(e)
+            return False
         logging.info(f"Update flag = {result}")
         return result
 
