@@ -39,7 +39,7 @@ def main():
         time.sleep(1)
         if google_sheets_client.get_update_flag():
             logging.info("Updating table")
-            google_sheets_client.set_updating_status()
+            google_sheets_client.set_status("updating")
 
             logging.info("Updating bonds storage")
             tinkoff_client.update_bonds_storage()
@@ -53,7 +53,7 @@ def main():
             google_sheets_client.write_flb(flb_table)
             google_sheets_client.write_ru_corp(ru_corp_table)
             google_sheets_client.write_fcb(fcb_table)
-            google_sheets_client.set_updated_status(len(flb_table) + len(ru_corp_table) + len(fcb_table))
+            google_sheets_client.set_status("updated", len(flb_table) + len(ru_corp_table) + len(fcb_table))
 
 
 if __name__ == "__main__":

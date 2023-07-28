@@ -21,7 +21,31 @@ class TableClient(ABC):
         pass
 
     @abstractmethod
-    def write_flb(self, flb_list: list[tuple]):
+    def _fill_main_sheet(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def set_status(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def get_update_flag(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def write_flb(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def write_fcb(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def _write_table(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def write_ru_corp(self, *args, **kwargs):
         pass
 
 
@@ -58,29 +82,27 @@ class GoogleSheetsClient(TableClient):
         set_data_validation_for_cell_range(worksheet, 'C7', validation_rule)
         logging.info("Main page was filled")
 
-    def set_updating_status(self):
-        logging.info("Setting status 'updating'")
-        worksheet: Worksheet | None
-        worksheet = self._worksheets.get("MAIN")
-        worksheet.batch_update([
-            {'range': "B5:C8", 'values': [
-                ['Последнее обновление:', '-'], ['Количество облигаций в базе:', '-'],
-                ['Обновить:', False], ['Статус таблицы:', 'ОБНОВЛЕНИЕ...']]
-             }
-        ])
-        logging.info("Status was updated")
-
-    def set_updated_status(self, bonds_count: int = 0):
-        logging.info("Setting status 'updated'")
+    def set_status(self, status: str = "updating", bonds_count: int = 0):
+        logging.info(f"Setting status '{status}'")
         worksheet: Worksheet | None
         worksheet = self._worksheets.get("MAIN")
         today = datetime.datetime.today().strftime("%d-%m-%y %H:%M")
-        worksheet.batch_update([
-            {'range': "B5:C8", 'values': [
-                ['Последнее обновление:', f'{today}'], ['Количество облигаций в базе:', f'{bonds_count}'],
-                ['Обновить:', False], ['Статус таблицы:', 'Готово']]
-             }
-        ])
+        if status == "updating":
+            worksheet.batch_update([
+                {'range': "B5:C8", 'values': [
+                    ['Последнее обновление:', '-'], ['Количество облигаций в базе:', '-'],
+                    ['Обновить:', False], ['Статус таблицы:', 'ОБНОВЛЕНИЕ...']]
+                 }
+            ])
+        elif status == "updated":
+            worksheet.batch_update([
+                {'range': "B5:C8", 'values': [
+                    ['Последнее обновление:', f'{today}'], ['Количество облигаций в базе:', f'{bonds_count}'],
+                    ['Обновить:', False], ['Статус таблицы:', 'Готово']]
+                 }
+            ])
+        else:
+            logging.error(f"UNEXPECTED STATUS: '{status}'")
         logging.info("Status was updated")
 
     def get_update_flag(self) -> bool:

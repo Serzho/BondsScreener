@@ -27,6 +27,18 @@ class BrokerClient(ABC):
         pass
 
     @abstractmethod
+    def get_flb(self):
+        pass
+
+    @abstractmethod
+    def get_ru_corp(self):
+        pass
+
+    @abstractmethod
+    def get_fcb(self):
+        pass
+
+    @abstractmethod
     def update_bonds_storage(self):
         pass
 
@@ -81,31 +93,31 @@ class TinkoffClient(BrokerClient):
             units, nano = price_entity.units, price_entity.nano
             return units + nano / 1000000000
 
-        def get_bond_dict(bond: Bond, attempts: int = 1) -> dict:
-            logging.info(f"Getting bond list: ticker={bond.ticker}")
+        def get_bond_dict(bond_obj: Bond, attempts: int = 1) -> dict:
+            logging.info(f"Getting bond list: ticker={bond_obj.ticker}")
             try:
-                if handle_price(bond.nominal) == 0.0:
-                    logging.warning(f"Not available bond: ticker={bond.ticker}")
+                if handle_price(bond_obj.nominal) == 0.0:
+                    logging.warning(f"Not available bond: ticker={bond_obj.ticker}")
                     return {}
                 time.sleep(request_delay)
                 out_dict = {
-                    "ticker": bond.ticker,
-                    "name": bond.name,
-                    "aci": handle_price(bond.aci_value),
-                    "currency": bond.currency,
-                    "placement_date": bond.placement_date.date(),
-                    "maturity_date": bond.maturity_date.date(),
+                    "ticker": bond_obj.ticker,
+                    "name": bond_obj.name,
+                    "aci": handle_price(bond_obj.aci_value),
+                    "currency": bond_obj.currency,
+                    "placement_date": bond_obj.placement_date.date(),
+                    "maturity_date": bond_obj.maturity_date.date(),
                     "coupons": handle_coupons(client.instruments.get_bond_coupons(
-                        figi=bond.figi, to=bond.maturity_date
+                        figi=bond_obj.figi, to=bond_obj.maturity_date
                     )),
-                    "nominal_value": handle_price(bond.nominal),
+                    "nominal_value": handle_price(bond_obj.nominal),
                     "real_value": handle_price(client.market_data.get_last_prices(
-                        figi=[bond.figi]
-                    ).last_prices[0].price) * 0.01 * handle_price(bond.nominal),
-                    "coupon_quantity_per_year": bond.coupon_quantity_per_year,
-                    "risk_level": bond.risk_level,
-                    "exchange_rate": 1 if bond.currency == "rub" else exchange_rate_dict.get(
-                        CURRENCY_TICKER_DICT.get(bond.currency)
+                        figi=[bond_obj.figi]
+                    ).last_prices[0].price) * 0.01 * handle_price(bond_obj.nominal),
+                    "coupon_quantity_per_year": bond_obj.coupon_quantity_per_year,
+                    "risk_level": bond_obj.risk_level,
+                    "exchange_rate": 1 if bond_obj.currency == "rub" else exchange_rate_dict.get(
+                        CURRENCY_TICKER_DICT.get(bond_obj.currency)
                     )
                 }
                 logging.info(f"Returning bond: attempts={attempts}, bond_dict={out_dict}")
@@ -117,11 +129,11 @@ class TinkoffClient(BrokerClient):
                 print("RESOURCE_EXHAUSTED...")
                 time.sleep(0.5)
                 if attempts > MAX_REQUEST_ATTEMPTS:
-                    logging.error(f"MAX_REQUEST_ATTEMPTS_ERROR: {bond.ticker}")
-                    print(f"Skipping bond {bond.ticker}")
+                    logging.error(f"MAX_REQUEST_ATTEMPTS_ERROR: {bond_obj.ticker}")
+                    print(f"Skipping bond {bond_obj.ticker}")
                     return {}
-                logging.warning(f"Retrying getting bond dict: {bond.ticker}")
-                return get_bond_dict(bond, attempts + 1)
+                logging.warning(f"Retrying getting bond dict: {bond_obj.ticker}")
+                return get_bond_dict(bond_obj, attempts + 1)
             except Exception as e:
                 logging.critical(f"UNEXPECTED ERROR!!! {e}")
                 logging.exception(e)
@@ -160,14 +172,13 @@ class TinkoffClient(BrokerClient):
             ru_corp_storage = self._bonds_storage['ru_corp']
             fcb_storage = self._bonds_storage['fcb']
 
-
             logging.info(f"Bonds amount = {bonds_count}")
             print(f"Count of bonds: {bonds_count}")
             if bonds is not None:
                 for number, bond in enumerate(bonds.instruments):
                     if number % 10 == 0:
                         print(f"{round(100 * number / bonds_count, 2)}")
-                    blocked_flags =[
+                    blocked_flags = [
                         bond.for_qual_investor_flag,
                         bond.floating_coupon_flag,
                         bond.amortization_flag,
@@ -192,10 +203,3 @@ class TinkoffClient(BrokerClient):
                 logging.critical("BONDS_IS_NONE_ERROR")
             logging.info(f"Bonds storage was updated for {time.time() - st_time}")
             print(f"Bonds storage was updated for {time.time() - st_time}")
-
-
-
-
-
-
-
