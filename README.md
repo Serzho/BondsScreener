@@ -20,8 +20,8 @@ https://habr.com/ru/articles/483302/
 **EMAIL** - список почтовых адресов, для которых будет выдан доступ к таблице  
 **TABLE_TOKEN_FILE** - путь к файлу токена от брокера  
 **BOND_COMMISSION** - коммиссия при покупке облигации  
-**CURRENCY_COMMISSION** - коммиссия при покупке валют
-**UNARY_REQUEST_LIMIT** - лимит запросов к api брокера в минуту  
+**CURRENCY_COMMISSION** - коммиссия при покупке валют  
+**UNARY_REQUEST_LIMIT** - лимит запросов к api брокера в минуту    
 **MAX_REQUEST_ATTEMPTS** - максимальное количество попыток получения одного запроса  
 **LOGGING_LEVEL** - уровень логирования  
 **START_TYPE** - режим запуска  
