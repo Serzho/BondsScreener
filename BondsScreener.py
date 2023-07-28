@@ -48,11 +48,13 @@ def main():
             flb_table = table_exporter.get_table(tinkoff_client.get_flb())
             ru_corp_table = table_exporter.get_table(tinkoff_client.get_ru_corp())
             fcb_table = table_exporter.get_table(tinkoff_client.get_fcb())
+            special_table = table_exporter.get_table(tinkoff_client.get_special())
 
             logging.info("Writing bonds table to the google sheets")
             google_sheets_client.write_flb(flb_table)
             google_sheets_client.write_ru_corp(ru_corp_table)
             google_sheets_client.write_fcb(fcb_table)
+            google_sheets_client.write_special(special_table)
             google_sheets_client.set_status("updated", len(flb_table) + len(ru_corp_table) + len(fcb_table))
 
 

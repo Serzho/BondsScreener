@@ -137,6 +137,10 @@ class TableExporter:
             logging.error(f"UNREAL BOND PROFIT: dict={bond_dict}, row={row_list}")
             return []
 
+        if bond_dict.get("feature"):
+            logging.info(f"Special bond: {bond_dict.get('ticker')}")
+            row_list.insert(2, bond_dict.get("feature"))
+
         logging.info(f"Returning row list={row_list}")
         return row_list
 

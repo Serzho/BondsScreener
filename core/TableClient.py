@@ -55,7 +55,7 @@ class GoogleSheetsClient(TableClient):
         scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         gs_client = gspread.service_account(filename=TABLE_TOKEN_FILE, scopes=scopes)
         self._sheet: Spreadsheet
-        self._worksheets = {"FLB": None, "RU_CORP": None, "MAIN": None, "FCB": None}
+        self._worksheets = {"FLB": None, "RU_CORP": None, "MAIN": None, "FCB": None, "SPECIAL": None}
         logging.info("Connecting table...")
         self._connect_table(gs_client, "Bonds")
         self._fill_main_sheet()
@@ -141,19 +141,20 @@ class GoogleSheetsClient(TableClient):
         logging.info("Successfully connected to table")
 
     @staticmethod
-    def _write_table(values_list: list, start_cell: tuple[int, int], worksheet: Worksheet | None):
+    def _write_table(values_list: list, start_cell: tuple[int, int], worksheet: Worksheet | None,
+                     unique_header: list = None):
 
         if worksheet is None:
             return
 
         logging.info(f"Writing table: values_amount={len(values_list)}, start_cell={start_cell}, "
-                     f"worksheet={worksheet.title}")
+                     f"worksheet={worksheet.title}, unique_header={unique_header}")
 
         header_list = [
             'Тикер', 'Название', 'Валюта', 'Уровень риска', 'Дата размещения',
             'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
             'Цена (rub)', 'Номинал (rub)', 'Простая доходность', 'Эффективная доходность'
-        ]
+        ] if unique_header is None else unique_header
 
         header_range = chr(ord('A') + start_cell[0] - 1), start_cell[1], \
                        chr(ord('A') + start_cell[0] - 1 + len(header_list)), start_cell[1]
@@ -180,3 +181,13 @@ class GoogleSheetsClient(TableClient):
         logging.info("Writing fcb table")
         worksheet = self._worksheets.get("FCB")
         self._write_table(fcb_list, start_cell, worksheet)
+
+    def write_special(self, special_list: list[list], start_cell=(1, 1)):
+        logging.info("Writing special table")
+        worksheet = self._worksheets.get("SPECIAL")
+        header = [
+            'Тикер', 'Название', 'Особенность', 'Валюта', 'Уровень риска', 'Дата размещения',
+            'Дата погашения', 'Времени до погашения', 'Количество купонов в год',
+            'Цена (rub)', 'Номинал (rub)', 'Простая доходность', 'Эффективная доходность'
+        ]
+        self._write_table(special_list, start_cell, worksheet, header)

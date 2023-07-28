@@ -13,6 +13,10 @@ CURRENCY_TICKER_DICT = {
     "byn": "BYNRUB_TOM", "amd": "AMDRUB_TOM", "uzs": "UZSRUB_TOM", "kgs": "KGSRUB_TOM", "tjs": "TJSRUB_TOM", "rub": None
 }
 exchange_rate_dict = {ticker: 1. for ticker in CURRENCY_TICKER_DICT.values()}
+SPECIAL_BOND_DICT = {
+    "RU000A1062M5": "Золотая облигация", 'SU52001RMFS3': 'Индексируемая', 'SU52005RMFS4': 'Индексируемая',
+    'SU52004RMFS7': 'Индексируемая', 'SU52003RMFS9': 'Индексируемая', 'SU52002RMFS1': 'Индексируемая'
+}
 
 
 class BrokerClient(ABC):
@@ -39,6 +43,10 @@ class BrokerClient(ABC):
         pass
 
     @abstractmethod
+    def get_special(self):
+        pass
+
+    @abstractmethod
     def update_bonds_storage(self):
         pass
 
@@ -54,7 +62,7 @@ class BrokerClient(ABC):
 class TinkoffClient(BrokerClient):
     def __init__(self, token: str = ""):
         self.__client_cls = Client
-        self._bonds_storage = {"ru_flb": [], "ru_corp": [], "fcb": []}
+        self._bonds_storage = {"ru_flb": [], "ru_corp": [], "fcb": [], "special": []}
         self.__token = token
         logging.info("Broker client was initialized")
 
@@ -77,6 +85,9 @@ class TinkoffClient(BrokerClient):
     def get_fcb(self):
         return self._bonds_storage["fcb"]
 
+    def get_special(self):
+        return self._bonds_storage["special"]
+
     def update_bonds_storage(self):
         def handle_coupons(response: tinkoff.invest.GetBondCouponsResponse) -> list[dict]:
             logging.info(f"Handling coupons: coupons_amount={len(response.events)}")
@@ -93,7 +104,7 @@ class TinkoffClient(BrokerClient):
             units, nano = price_entity.units, price_entity.nano
             return units + nano / 1000000000
 
-        def get_bond_dict(bond_obj: Bond, attempts: int = 1) -> dict:
+        def get_bond_dict(bond_obj: Bond, attempts: int = 1, is_special: bool = False) -> dict:
             logging.info(f"Getting bond list: ticker={bond_obj.ticker}")
             try:
                 if handle_price(bond_obj.nominal) == 0.0:
@@ -118,9 +129,10 @@ class TinkoffClient(BrokerClient):
                     "risk_level": bond_obj.risk_level,
                     "exchange_rate": 1 if bond_obj.currency == "rub" else exchange_rate_dict.get(
                         CURRENCY_TICKER_DICT.get(bond_obj.currency)
-                    )
+                    ),
+                    "feature": "" if not is_special else SPECIAL_BOND_DICT.get(bond_obj.ticker)
                 }
-                logging.info(f"Returning bond: attempts={attempts}, bond_dict={out_dict}")
+                logging.info(f"Returning bond: attempts={attempts}, bond_dict={out_dict}, special={is_special}")
                 return out_dict
 
             except tinkoff.invest.exceptions.RequestError as e:
@@ -171,6 +183,7 @@ class TinkoffClient(BrokerClient):
             flb_storage = self._bonds_storage['ru_flb']
             ru_corp_storage = self._bonds_storage['ru_corp']
             fcb_storage = self._bonds_storage['fcb']
+            special_storage = self._bonds_storage["special"]
 
             logging.info(f"Bonds amount = {bonds_count}")
             print(f"Count of bonds: {bonds_count}")
@@ -185,7 +198,10 @@ class TinkoffClient(BrokerClient):
                         not bond.buy_available_flag
                     ]
                     if not any(blocked_flags):
-                        if bond.currency == 'rub':
+                        if bond.ticker in SPECIAL_BOND_DICT.keys():
+                            logging.info(f"SPECIAL Bond: {bond.ticker}")
+                            special_storage.append(get_bond_dict(bond, is_special=True))
+                        elif bond.currency == 'rub':
                             if bond.sector == "government":
                                 logging.info(f"FLB Bond: {bond.ticker}")
                                 flb_storage.append(get_bond_dict(bond))
