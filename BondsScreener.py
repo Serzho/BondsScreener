@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Callable
 
 from cfg import TOKEN, LOGGING_LEVEL, START_TYPE
 from core.BrokerClient import TinkoffClient
@@ -22,6 +23,19 @@ def config_logging():
     logging.basicConfig(level=level, filename="bs_log.log", filemode="a",
                         format="%(asctime)s | (%(filename)s).%(funcName)s: %(levelname)s - %(message)s")
     logging.info("Logging was successfully initialized")
+
+
+def start(main_func: Callable):
+    while True:
+        try:
+            main_func()
+        except KeyboardInterrupt:
+            logging.warning("Correct exit")
+            break
+        except Exception as e:
+            logging.error("UNEXPECTED EXITING PROGRAM")
+            logging.exception(e)
+            logging.warning("Restarting program...")
 
 
 def test():
@@ -62,7 +76,7 @@ if __name__ == "__main__":
     config_logging()
     if START_TYPE == "MAIN":
         logging.info("Starting at normal mode")
-        main()
+        start(main)
     elif START_TYPE == "TEST":
         logging.error("Starting at testing mode")
-        test()
+        start(test)

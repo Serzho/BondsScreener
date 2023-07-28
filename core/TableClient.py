@@ -6,7 +6,8 @@ import gspread
 from gspread import Client, Spreadsheet, Worksheet
 
 from cfg import EMAIL, TABLE_TOKEN_FILE
-from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range, set_column_widths
+from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range, \
+    set_column_widths
 
 
 FORMAT_DICT = {
@@ -14,16 +15,20 @@ FORMAT_DICT = {
         'B': 200, 'C': 240
     }},
     "FLB": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
     }},
     "FLC": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
     }},
     "SPECIAL": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 140, 'D': 60, 'E': 110, 'F': 135, 'G': 120, 'H': 160, 'I': 180, 'J': 80, 'K': 105, 'L': 145, 'M': 175
+        'A': 120, 'B': 130, 'C': 140, 'D': 60, 'E': 110, 'F': 135,
+        'G': 120, 'H': 160, 'I': 180, 'J': 80, 'K': 105, 'L': 145, 'M': 175
     }},
     "RU_CORP": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
     }}
 }
 
@@ -91,6 +96,7 @@ class GoogleSheetsClient(TableClient):
         worksheet: Worksheet | None
         worksheet = self._worksheets.get("MAIN")
         assert type(worksheet) == Worksheet
+        worksheet.update_index(0)
         worksheet.batch_update([
             {'range': "B4:C12", 'values': [
                 ['ТАБЛИЦА ОБЛИГАЦИЙ', ''], ['Последнее обновление:', '01-01-1970 00:00'],
@@ -110,6 +116,8 @@ class GoogleSheetsClient(TableClient):
         logging.info(f"Setting status '{status}'")
         worksheet: Worksheet | None
         worksheet = self._worksheets.get("MAIN")
+        assert type(worksheet) == Worksheet
+        worksheet.update_index(0)
         today = datetime.datetime.today().strftime("%d-%m-%y %H:%M")
         if status == "updating":
             worksheet.batch_update([
@@ -135,11 +143,19 @@ class GoogleSheetsClient(TableClient):
         try:
             result = worksheet.acell('C7').value == 'TRUE'
         except gspread.exceptions.APIError as e:
-            print("GSPREAD RESOURCE EXHAUSTED")
-            logging.warning("Gspread resource exhausted! Waiting 1 sec")
-            logging.exception(e)
-            time.sleep(1)
-            result = self.get_update_flag()
+            print("GSPREAD API ERROR")
+            logging.warning("GSPREAD API ERROR")
+            if e.args[0]['code'] == 429:
+                print("Gspread resource exhausted!")
+                logging.warning("Gspread resource exhausted! Waiting 1 sec")
+                logging.exception(e)
+                time.sleep(1)
+                result = self.get_update_flag()
+            else:
+                print("UNEXPECTED GSPREAD API ERROR")
+                logging.critical("UNEXPECTED GSPREAD API ERROR")
+                logging.exception(e)
+                raise e
         except Exception as e:
             print(f"UNEXPECTED EXCEPTION: {e}")
             logging.critical(f"UNEXPECTED EXCEPTION IN GSPREAD: {e}")
