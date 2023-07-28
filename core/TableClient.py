@@ -9,27 +9,43 @@ from cfg import EMAIL, TABLE_TOKEN_FILE
 from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range, \
     set_column_widths
 
-
 FORMAT_DICT = {
-    "MAIN": {'cols_width': {
-        'B': 200, 'C': 240
-    }},
-    "FLB": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
-        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
-    }},
-    "FLC": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
-        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
-    }},
-    "SPECIAL": {'cols_width': {
-        'A': 120, 'B': 130, 'C': 140, 'D': 60, 'E': 110, 'F': 135,
-        'G': 120, 'H': 160, 'I': 180, 'J': 80, 'K': 105, 'L': 145, 'M': 175
-    }},
-    "RU_CORP": {'cols_width': {
-        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
-        'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
-    }}
+    "MAIN": {
+        'cols_width': {
+            'B': 200, 'C': 240
+        },
+        'cells_color': {
+            'C7': (189 / 255, 255 / 255, 162 / 255)
+        }
+    },
+    "FLB": {
+        'cols_width': {
+            'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+            'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        },
+        'cells_color': {}
+    },
+    "FLC": {
+        'cols_width': {
+            'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+            'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        },
+        'cells_color': {}
+    },
+    "SPECIAL": {
+        'cols_width': {
+            'A': 120, 'B': 130, 'C': 140, 'D': 60, 'E': 110, 'F': 135,
+            'G': 120, 'H': 160, 'I': 180, 'J': 80, 'K': 105, 'L': 145, 'M': 175
+        },
+        'cells_color': {}
+    },
+    "RU_CORP": {
+        'cols_width': {
+            'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120,
+            'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+        },
+        'cells_color': {}
+    }
 }
 
 
@@ -212,12 +228,21 @@ class GoogleSheetsClient(TableClient):
     def format_sheets(self):
         logging.info("Formatting worksheets")
         for ws_title, format_dict in FORMAT_DICT.items():
+            worksheet: Worksheet | None
             worksheet = self._worksheets.get(ws_title)
             if worksheet is None:
                 logging.error(f"UNEXPECTED WORKSHEET TITLE={ws_title}")
                 continue
+
             cols_list = [tuple(col) for col in format_dict['cols_width'].items()]
             set_column_widths(worksheet, cols_list)
+            cells_list = [tuple(cell) for cell in format_dict['cells_color'].items()]
+            for cell, rgb in cells_list:
+                worksheet.format(
+                    cell, {"backgroundColor": {"red": rgb[0], "green": rgb[1], "blue": rgb[2]}}
+                )
+                print(rgb)
+
             logging.info(f"{ws_title} was formatted")
 
     def write_flb(self, flb_list: list[list], start_cell=(1, 1)):
