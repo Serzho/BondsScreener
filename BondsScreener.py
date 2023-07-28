@@ -66,5 +66,3 @@ if __name__ == "__main__":
     elif START_TYPE == "TEST":
         logging.error("Starting at testing mode")
         test()
-
-

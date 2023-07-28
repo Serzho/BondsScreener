@@ -6,7 +6,26 @@ import gspread
 from gspread import Client, Spreadsheet, Worksheet
 
 from cfg import EMAIL, TABLE_TOKEN_FILE
-from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range
+from gspread_formatting import BooleanCondition, DataValidationRule, set_data_validation_for_cell_range, set_column_widths
+
+
+FORMAT_DICT = {
+    "MAIN": {'cols_width': {
+        'B': 200, 'C': 240
+    }},
+    "FLB": {'cols_width': {
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+    }},
+    "FLC": {'cols_width': {
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+    }},
+    "SPECIAL": {'cols_width': {
+        'A': 120, 'B': 220, 'C': 140, 'D': 60, 'E': 110, 'F': 135, 'G': 120, 'H': 160, 'I': 180, 'J': 80, 'K': 105, 'L': 145, 'M': 175
+    }},
+    "RU_CORP": {'cols_width': {
+        'A': 120, 'B': 220, 'C': 60, 'D': 110, 'E': 135, 'F': 120, 'G': 160, 'H': 180, 'I': 80, 'J': 105, 'K': 145, 'L': 175
+    }}
+}
 
 
 class TableClient(ABC):
@@ -48,6 +67,10 @@ class TableClient(ABC):
     def write_ru_corp(self, *args, **kwargs):
         pass
 
+    @abstractmethod
+    def format_sheets(self, *args, **kwargs):
+        pass
+
 
 class GoogleSheetsClient(TableClient):
     def __init__(self):
@@ -59,6 +82,7 @@ class GoogleSheetsClient(TableClient):
         logging.info("Connecting table...")
         self._connect_table(gs_client, "Bonds")
         self._fill_main_sheet()
+        self.format_sheets()
         print(self._sheet.url)
         logging.info(f"Google sheet client was successfully initialized! URL={self._sheet.url}")
 
@@ -140,10 +164,9 @@ class GoogleSheetsClient(TableClient):
         self._sheet.share(EMAIL, perm_type='user', role='writer')
         logging.info("Successfully connected to table")
 
-    @staticmethod
-    def _write_table(values_list: list, start_cell: tuple[int, int], worksheet: Worksheet | None,
+    def _write_table(self, values_list: list, start_cell: tuple[int, int], worksheet: Worksheet | None,
                      unique_header: list = None):
-
+        self.format_sheets()
         if worksheet is None:
             return
 
@@ -156,8 +179,11 @@ class GoogleSheetsClient(TableClient):
             'Цена (rub)', 'Номинал (rub)', 'Простая доходность', 'Эффективная доходность'
         ] if unique_header is None else unique_header
 
-        header_range = chr(ord('A') + start_cell[0] - 1), start_cell[1], \
-                       chr(ord('A') + start_cell[0] - 1 + len(header_list)), start_cell[1]
+        header_range = (
+            chr(ord('A') + start_cell[0] - 1), start_cell[1],
+            chr(ord('A') + start_cell[0] - 1 + len(header_list)), start_cell[1]
+        )
+
         instrument_range = header_range[0], header_range[1] + 1, header_range[2], header_range[3] + 1 + len(values_list)
 
         logging.info(f"Header_range={header_range}, Instrument_range={instrument_range}")
@@ -166,6 +192,17 @@ class GoogleSheetsClient(TableClient):
             {'range': "{}{}:{}{}".format(*instrument_range), 'values': values_list}
         ])
         logging.info("Table was writed")
+
+    def format_sheets(self):
+        logging.info("Formatting worksheets")
+        for ws_title, format_dict in FORMAT_DICT.items():
+            worksheet = self._worksheets.get(ws_title)
+            if worksheet is None:
+                logging.error(f"UNEXPECTED WORKSHEET TITLE={ws_title}")
+                continue
+            cols_list = [tuple(col) for col in format_dict['cols_width'].items()]
+            set_column_widths(worksheet, cols_list)
+            logging.info(f"{ws_title} was formatted")
 
     def write_flb(self, flb_list: list[list], start_cell=(1, 1)):
         logging.info("Writing flb table")
