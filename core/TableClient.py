@@ -193,7 +193,8 @@ class GoogleSheetsClient(TableClient):
                 logging.info(f"Sheet {worksheet_title} was created")
             self._worksheets.update({worksheet_title: self._sheet.worksheet(worksheet_title)})
 
-        self._sheet.share(EMAIL, perm_type='user', role='writer')
+        for em in EMAIL:
+            self._sheet.share(em, perm_type='user', role='writer')
         logging.info("Successfully connected to table")
 
     def _write_table(self, values_list: list, start_cell: tuple[int, int], worksheet: Worksheet | None,

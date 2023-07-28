@@ -1,5 +1,5 @@
 TOKEN = ""
-EMAIL = "github@gmail.com"
+EMAIL = ["github@gmail.com"]
 TABLE_TOKEN_FILE = "table_token.json"
 BOND_COMMISSION = (1 / 100) * 0.05
 CURRENCY_COMMISSION = (1 / 100) * 0.5
